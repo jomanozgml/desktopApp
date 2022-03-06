@@ -17,7 +17,6 @@ import time
 
 window, dashWindow, searchEntry = None, None, None
 loginUser, loginPass = None, None
-# uD = {'nanc':'register', 'admin':'nanc', 'manoj':'shrestha', 'shova':'mangal'}
 uD = np.load('dict.npy', allow_pickle=True).item()
 titleName = ['S.N.', 'Date', 'Category', 'Name', 'Expenses Type', 'Site', 'Duration',\
 		'Status', '', '', '', 'Issue', 'Remarks']
