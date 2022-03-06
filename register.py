@@ -1,0 +1,539 @@
+# -*- coding: utf-8 -*-
+import os
+#Importing all from Tkinter for GUI
+from tkinter import *
+#Importing openFileDialog and saveFileDialog
+from tkinter.filedialog import *
+from tkinter.messagebox import *
+import PIL
+from PIL import Image, ImageTk
+import numpy as np
+import cv2
+import re
+# from openpyxl import Workbook
+from openpyxl import load_workbook
+from tkinter.font import Font
+import time
+
+window, dashWindow, searchEntry = None, None, None
+loginUser, loginPass = None, None
+# uD = {'nanc':'register', 'admin':'nanc', 'manoj':'shrestha', 'shova':'mangal'}
+uD = np.load('dict.npy', allow_pickle=True).item()
+titleName = ['S.N.', 'Date', 'Category', 'Name', 'Expenses Type', 'Site', 'Duration',\
+		'Status', '', '', '', 'Issue', 'Remarks']
+
+def dataEntry(prevWindow, opt):
+	wb, ws = None, None
+	e1, e2, e3, e4, e5, e6, e7, e12, e13 = [], [], [], [], [], [], [], [], []
+	c8, c9, c10, c11, tkvar, tkvar2, tkvar3 = [], [], [], [], [], [], []
+	c8name, c9name, c10name, c11name = [], [], [], []
+	i, a, lastRow, newEntryBtn = [0], [0], [0], [0]
+	snValue, ckvar8, ckvar9, ckvar10, ckvar11, editBtn = [], [], [], [], [], []
+	rowsDash = 1
+	colsDash = len(titleName)
+	
+	#Loading Excel WorkBook
+	# global wb, ws, lastRow[0]
+	wb = load_workbook('reg.xlsx')
+	ws = wb['Sheet']
+	lastRow[0] = ws.max_row
+	myFont = Font(family="monospace", size=8)
+	
+	if opt == 1:
+		newWindow = Frame(mainWindow, bg="#cfd8dc")
+		newWindow.place(anchor=NW, width=1200, height=800)
+		
+	if opt == 2:
+		searchResult = None
+		searchThis = searchEntry.get()
+		searchRegex = re.compile(r'.*' + re.escape(searchThis) + r'.*', re.I)
+		if radioVar.get() == 'Recorded':
+			colnum = 8
+		if radioVar.get() == 'Checked':
+			colnum = 9
+		if radioVar.get() == 'Pending':
+			colnum = 10
+		if radioVar.get() == 'Completed':
+			colnum = 11
+		for rowNum in range(2, lastRow[0]+1):
+			if ws.cell(row=rowNum, column=colnum).value != '0':
+				if searchThis != None:
+					searchName = ws.cell(row=rowNum, column=4).value
+					searchResult = searchRegex.search(searchName)
+					
+				if  searchThis == None or searchResult != None:
+					snValue.append(ws.cell(row=rowNum, column=1).value)
+				
+		def onFrameConfigure(canvas):
+			#Reset the scroll region to encompass the inner frame
+			canvas.configure(scrollregion=canvas.bbox("all"))
+		def on_mousewheel(event):
+			canvas.yview_scroll(-1*(event.delta/120), "units")
+		canvas = Canvas(prevWindow, width=1200, height=600)
+		newWindow = Frame(canvas, bg="#cfd8dc")
+		scrollBar = Scrollbar(prevWindow, orient="vertical", command=canvas.yview)
+		canvas.configure(yscrollcommand=scrollBar.set)
+		scrollBar.pack(side="right", fill="y")
+		canvas.bind_all("<MouseWheel>", on_mousewheel)
+		canvas.pack(side="left", fill="both", expand=True)
+		canvas.create_window((4,4), window=newWindow, anchor="nw")
+		newWindow.bind("<Configure>", lambda event, canvas=canvas: onFrameConfigure(canvas))
+	
+	for j in range(0, colsDash): #Columns
+		b = Label(newWindow, text=titleName[j], padx=5, pady=5, bd=1, relief="flat", bg="#cfd8dc")
+		b.grid(row=0, column=j)
+		ws.cell(row=1, column=j+1, value=titleName[j])
+	
+	def newEntry():
+		i[0] = i[0]+1
+			
+		e1.append(Entry(newWindow, relief="flat", width=6, bg="#f0f0f0", justify=CENTER))
+		e1[a[0]].grid(row=i[0], column=0, ipady=12)
+		
+		if opt == 1:
+			e1[a[0]].insert(0,lastRow[0])
+				
+		e2.append(Entry(newWindow, relief="flat", width=10, bg="#f0f0f0", justify=CENTER))
+		if opt == 1 and i[0] == 1:
+			e2[a[0]].insert(0, time.strftime('%Y/%m/%d'))
+		e2[a[0]].grid(row=i[0], column=1, ipady=12)
+				
+		tkvar.append(StringVar())
+		categoryDash = {'Employee','Contractor','Supplier','Customer'}
+		tkvar[a[0]].set('Employee')
+		e3.append(OptionMenu(newWindow, tkvar[a[0]], *categoryDash))
+		e3[a[0]].config(width=8)
+		e3[a[0]].grid(row=i[0], column=2, ipady=7)
+		
+		e4.append(Text(newWindow, relief="flat", width=18, height=1, bg="#f0f0f0", wrap='word', font=('Helvetica',8)))
+		e4[a[0]].grid(row=i[0], column=3, ipady=13)
+				
+		tkvar2.append(StringVar())
+		expensesDash = {'Site Expenses','Personal Expenses','Labour Expenses','Mess Expenses', 'Advance'}
+		tkvar2[a[0]].set('Site Expenses')
+		e5.append(OptionMenu(newWindow, tkvar2[a[0]], *expensesDash))
+		e5[a[0]].config(width=14)
+		e5[a[0]].grid(row=i[0], column=4, ipady=7)
+				
+		e6.append(Entry(newWindow, relief="flat", width=8, bg="#f0f0f0", justify=CENTER))
+		e6[a[0]].grid(row=i[0], column=5, ipady=12)
+				
+		e7.append(Entry(newWindow, relief="flat", width=9, bg="#f0f0f0", justify=CENTER))
+		e7[a[0]].grid(row=i[0], column=6, ipady=12)
+				
+		ckFrame = LabelFrame(newWindow, bd=0)
+		ckFrame.grid(row=i[0], column=7, columnspan=4)
+		
+		ckvar8.append(StringVar())
+		c8.append(Checkbutton(ckFrame, width=8, text="Recorded", onvalue="Recorded", variable=ckvar8[a[0]]))
+		c8[a[0]].grid(row=i[0], column=1)
+		c8[a[0]].select()
+		c8name.append(Entry(ckFrame, text="", width=15, font=myFont, state='disabled', relief="flat"))
+		c8name[a[0]].grid(row=i[0]+1, column=1)
+		
+		ckvar9.append(StringVar())
+		c9.append(Checkbutton(ckFrame, width=8, text="Checked", onvalue="Checked", variable=ckvar9[a[0]]))
+		c9[a[0]].grid(row=i[0], column=2)
+		c9[a[0]].deselect()
+		c9name.append(Entry(ckFrame, text="", width=15, font=myFont, state='disabled', relief="flat"))
+		c9name[a[0]].grid(row=i[0]+1, column=2)
+		
+		ckvar10.append(StringVar())
+		c10.append(Checkbutton(ckFrame, width=8, text="Pending", onvalue="Pending", variable=ckvar10[a[0]]))
+		c10[a[0]].grid(row=i[0], column=3)
+		c10[a[0]].deselect()
+		c10name.append(Entry(ckFrame, text="", width=15, font=myFont, state='disabled', relief="flat"))
+		c10name[a[0]].grid(row=i[0]+1, column=3)
+		
+		ckvar11.append(StringVar())
+		c11.append(Checkbutton(ckFrame, width=8, text="Completed", onvalue="Completed", variable=ckvar11[a[0]]))
+		c11[a[0]].grid(row=i[0], column=4)
+		c11[a[0]].deselect()
+		c11name.append(Entry(ckFrame, text="", width=15, font=myFont, state='disabled', relief="flat"))
+		c11name[a[0]].grid(row=i[0]+1, column=4)
+		
+		tkvar3.append(StringVar())
+		issues = {'None', 'ROM Missing','Bill Missing',"Doc Didn't Match",'Shipping Missing', 'Other'}
+		tkvar3[a[0]].set('None')
+		e12.append(OptionMenu(newWindow, tkvar3[a[0]], *issues))
+		e12[a[0]].config(width=14)
+		e12[a[0]].grid(row=i[0], column=11, ipady=7)
+		
+		e13.append(Text(newWindow, relief="flat", width=20, height=1, bg="#f0f0f0", wrap='word', font=myFont))
+		e13[a[0]].grid(row=i[0], column=12, ipady=13)
+		
+		if opt == 1:
+			newEntryBtn[0] = Button(newWindow, text=u"\u271a", command=lambda: saveData(1,lastRow[0],a[0]-1))
+			newEntryBtn[0].grid(row=i[0], column=13, ipady=11)
+		if opt == 2:
+			editBtn.append(Button(newWindow, text=u'\u270e'))
+			editBtn[a[0]].grid(row=i[0], column=13, ipady=11)
+			editBtn[a[0]].config(command=lambda b=a[0]: editData(b))
+		#text=u"\u2714"  text=u"\u2718"
+		
+		a[0] = a[0]+1
+		lastRow[0] = lastRow[0]+1
+
+	def	disableData(ct):
+		e1[ct].config(state='disabled', disabledforeground='#003366')
+		e2[ct].config(state='disabled', disabledforeground='#003366')
+		e3[ct].config(state='disabled', disabledforeground='#003366')
+		e4[ct].config(state='disabled', fg='#003366')
+		e5[ct].config(state='disabled', disabledforeground='#003366')
+		e6[ct].config(state='disabled', disabledforeground='#003366')
+		e7[ct].config(state='disabled', disabledforeground='#003366')
+		c8[ct].config(state='disabled', disabledforeground='#003366')
+		c9[ct].config(state='disabled', disabledforeground='#003366')
+		c10[ct].config(state='disabled', disabledforeground='#003366')
+		c11[ct].config(state='disabled', disabledforeground='#003366')
+		e12[ct].config(state='disabled', disabledforeground='#003366')
+		e13[ct].config(state='disabled', fg='#003366')
+		
+	if opt == 1:
+		newEntry()
+	
+	if opt == 2:
+		if snValue:
+			snValueLen = len(snValue)
+			for x in range(0, snValueLen):
+				newEntry()
+				e1[a[0]-1].insert(0, snValue[x])
+				e2[a[0]-1].insert(0, ws.cell(row=snValue[x]+1, column=2).value)
+				tkvar[a[0]-1].set(ws.cell(row=snValue[x]+1, column=3).value)
+				e4[a[0]-1].insert(INSERT, ws.cell(row=snValue[x]+1, column=4).value)
+				tkvar2[a[0]-1].set(ws.cell(row=snValue[x]+1, column=5).value)
+				e6[a[0]-1].insert(0, ws.cell(row=snValue[x]+1, column=6).value)
+				e7[a[0]-1].insert(0, ws.cell(row=snValue[x]+1, column=7).value)
+				ckvar8[a[0]-1].set(ws.cell(row=snValue[x]+1, column=8).value)
+				ckvar9[a[0]-1].set(ws.cell(row=snValue[x]+1, column=9).value)
+				ckvar10[a[0]-1].set(ws.cell(row=snValue[x]+1, column=10).value)
+				ckvar11[a[0]-1].set(ws.cell(row=snValue[x]+1, column=11).value)
+				tkvar3[a[0]-1].set(ws.cell(row=snValue[x]+1, column=12).value)
+				
+				vlist = []
+				elist = [e13[a[0]-1], c8name[a[0]-1], c9name[a[0]-1], c10name[a[0]-1], c11name[a[0]-1]]
+				for f in range(5):
+					vlist.append(ws.cell(row=snValue[x]+1, column=f+13).value)
+					if vlist[f] != None:
+						if f == 0:
+							elist[f].insert(INSERT,vlist[0])
+						else:
+							elist[f].config(state='normal')
+							elist[f].insert(0,vlist[f])
+							elist[f].config(state='disabled')			
+				
+				disableData(a[0]-1)
+				
+			del snValue[:]
+		else:
+			noResult = Label(prevWindow, text="No Match Found !!", font=('Helvetica',36))
+			noResult.place(relx=0.36, rely=0.45)
+		
+	def editData(bt):
+		if flag[bt] == 0:
+			flag[bt] = 1
+			editBtn[bt].config(text=u'\u2714')
+			e1[bt].config(state='normal', bg='#fff')
+			e2[bt].config(state='normal', bg='#fff')
+			e3[bt].config(state='normal', bg='#fff')
+			e4[bt].config(state='normal', bg='#fff', fg='#000')
+			e5[bt].config(state='normal', bg='#fff')
+			e6[bt].config(state='normal', bg='#fff')
+			e7[bt].config(state='normal', bg='#fff')
+			#c8[bt].config(state='normal', bg='#fff')
+			c9[bt].config(state='normal', bg='#fff')
+			c10[bt].config(state='normal', bg='#fff')
+			c11[bt].config(state='normal', bg='#fff')
+			e12[bt].config(state='normal', bg='#fff')
+			e13[bt].config(state='normal', bg='#fff', fg='#000')
+		else:
+			flag[bt] = 0
+			editBtn[bt].config(text=u'\u270e')
+			disableData(bt)
+			saveData(2,bt+2,bt)
+			
+	def saveData(x,saveRow,m):
+		ws.cell(row=saveRow, column=1, value=saveRow-1)
+		ws.cell(row=saveRow, column=2, value=e2[m].get())
+		ws.cell(row=saveRow, column=3, value=tkvar[m].get())
+		nf = e4[m].get(1.0,"end-1c")
+		if nf=='' or nf==' ' or nf=='\t' or nf=='\t\t' or nf=='\t\t\t':
+			showerror('Error','Name Field Cannot be blank!!')
+			
+		else:
+			ws.cell(row=saveRow, column=4, value=e4[m].get(1.0,"end-1c"))
+			ws.cell(row=saveRow, column=5, value=tkvar2[m].get())
+			ws.cell(row=saveRow, column=6, value=e6[m].get())
+			ws.cell(row=saveRow, column=7, value=e7[m].get())
+			ws.cell(row=saveRow, column=8, value=ckvar8[m].get())
+			ws.cell(row=saveRow, column=9, value=ckvar9[m].get())
+			if ckvar11[m].get() != '0':
+				ckvar10[m].set('0')
+				tkvar3[m].set('None')
+			ws.cell(row=saveRow, column=10, value=ckvar10[m].get())
+			ws.cell(row=saveRow, column=11, value=ckvar11[m].get())
+			ws.cell(row=saveRow, column=12, value=tkvar3[m].get())
+			ws.cell(row=saveRow, column=13, value=e13[m].get(1.0,"end-1c"))
+			
+			clist = [c8name[m], c9name[m], c10name[m], c11name[m], ckvar8[m], ckvar9[m], ckvar10[m], ckvar11[m]]
+			now = time.strftime('%Y/%m/%d')
+			for v in range(4):
+				if clist[v+4].get() != '0' and clist[v].get() == '':
+					clist[v].config(state='normal')
+					detailUser = loginUser + ' ' + now
+					clist[v].insert(0,detailUser)
+					clist[v].config(state='disabled')
+					ws.cell(row=saveRow, column=v+14, value=clist[v].get())
+				
+				elif clist[v+4].get() == '0' and clist[v].get() != '':
+					clist[v].config(state='normal')
+					clist[v].delete(0, 'end')
+					clist[v].config(state='disabled')
+					ws.cell(row=saveRow, column=v+14, value=clist[v].get())
+			
+			wb.save('reg.xlsx')
+			disableData(m)
+
+			if x == 1:
+				newEntryBtn[0].grid_forget()
+				newEntry()
+	
+	flag = [0]*a[0]
+	welcomeText = "User: " + loginUser
+	welcomeLabel = Label(newWindow, text=welcomeText, bg="#cfd8dc")
+	if opt == 2:
+		welcomeLabel = Label(canvas, text=welcomeText, bg="#cfd8dc")
+	welcomeLabel.place(relx=0.01, rely=0.93)
+	
+	if opt == 1:
+		saveDataBtn = Button(newWindow, text="Save Data", command=lambda: saveData(2,lastRow[0],a[0]-1))
+		saveDataBtn.place(relx=0.83, rely=0.93)
+			
+		def callFunction():
+			newWindow.destroy()
+			openDashboard(newWindow, loginUser, loginPass)
+		logOut = Button(newWindow, text="Go Back [Dashboard]", command=callFunction)
+		logOut.place(relx=0.89, rely=0.93)
+	
+def openDashboard(window, loginUser, loginPass):
+	if loginUser in uD.keys() and loginPass == uD[loginUser]:
+			window.destroy()
+			dashWindow = Frame(mainWindow, bg="#cfd8dc")
+			dashWindow.place(anchor=NW, width=1200, height=800)
+			bgImg = Image.open("dashBG.jpg")
+			bgImage = Label(dashWindow)
+			bgImage.img = ImageTk.PhotoImage(bgImg)
+			bgImage.config(width = 1200, height = 530, image = bgImage.img)
+			bgImage.place(anchor=NW)
+			entryButton = Button(dashWindow, text="Enter Data", command=lambda: dataEntry(dashWindow,1))
+			entryButton.place(relx=0.31, rely=0.70, width=200, height=50)
+			
+			def userManagement():
+				userWindow = Toplevel(bg="#cfd8dc", width=250, height=500)
+				userWindow.title("User Management")
+				userWindow.wm_iconbitmap('logo.ico')
+				userFrame = Frame(userWindow, bg="#cfd8dc")
+				userFrame.place(relx=0.1, rely=0.05)
+				
+				usrName = Label(userFrame, text='Username', padx=2, pady=5, bd=1, bg="#cfd8dc")
+				usrName.grid(row=0, column=0)
+				
+				psWord = Label(userFrame, text='Password', padx=2, pady=5, bd=1, bg="#cfd8dc")
+				psWord.grid(row=0, column=1)
+				
+				innerFrame = Frame(userFrame, bg="#cfd8dc")
+				innerFrame.grid(row=1, column=0, columnspan=2)
+				
+				p = 0
+				eBtn, uN, pW, d = [], [], [], ['0']
+				for d[p] in uD:
+					uN.append(Entry(innerFrame, width=12, bg="#cfd8dc"))
+					uN[p].insert(0,d[p])
+					uN[p].grid(row=p, column=0, ipady=2)
+					uN[p].config(state="disabled")
+					
+					pW.append(Entry(innerFrame, width=12, show="*", bg="#cfd8dc"))
+					pW[p].insert(0,uD[d[p]])
+					pW[p].grid(row=p, column=1, ipady=2)
+					pW[p].config(state="disabled")
+					
+					eBtn.append(Button(innerFrame, text=u'\u270e'))
+					eBtn[p].grid(row=p, column=2)
+					eBtn[p].config(command=lambda v=p: eData(v))
+					eBtn[p].config(state='disabled')
+					if d[p] == loginUser or loginUser == 'admin':
+						eBtn[p].config(state='normal')
+					d.append('0')
+					p = p+1
+				
+				if loginUser == 'admin':
+					aBtn = Button(innerFrame, text="Add User", width=9, relief='flat', command=lambda: aData(aBtn,p))
+					aBtn.grid(row=p, column=0)
+				
+				fB = [0]*p
+				
+				def eData(w):
+					if fB[w] == 0:
+						fB[w] = 1
+						eBtn[w].config(text=u'\u2714')
+						uN[w].config(state="normal")
+						pW[w].config(state="normal", show="")
+					else:
+						fB[w] = 0
+						eBtn[w].config(text=u'\u270e')
+						if uN[w].get() not in uD.keys():
+							if d[w] == '0':
+								d[w] = uN[w].get()
+								uD[uN[w].get()] = pW[w].get()
+							else:
+								uD[uN[w].get()] = uD.pop(d[w])
+							np.save('dict.npy',uD)
+						if uD[uN[w].get()] != pW[w].get():
+							uD[uN[w].get()] = pW[w].get()
+							np.save('dict.npy',uD)
+						uN[w].config(state="disabled")
+						pW[w].config(show="*", state="disabled")
+				 
+				def aData(aBtn,p):
+					aBtn.grid_forget()
+					uN.append(Entry(innerFrame, width=12, bg="#cfd8dc"))
+					uN[p].grid(row=p, column=0, ipady=2)
+					pW.append(Entry(innerFrame, width=12, show="", bg="#cfd8dc"))
+					pW[p].grid(row=p, column=1, ipady=2)
+					fB.append(1)
+					d.append('0')
+					eBtn.append(Button(innerFrame, text=u'\u2714'))
+					eBtn[p].grid(row=p, column=2)
+					eBtn[p].config(command=lambda v=p: eData(v))
+					aBtn = Button(innerFrame, text="Add User", width=9, relief='flat', command=lambda: aData(aBtn,p))
+					p = p+1
+					aBtn.grid(row=p, column=0)
+				
+			def searchData(event):
+				searchThis = searchEntry.get()
+				# showinfo("Search Result","Under Development!")
+				searchWindow = Toplevel(bg="#cfd8dc")
+				searchWindow.title("Search Result")
+				searchWindow.wm_iconbitmap('logo.ico')
+				#pic = Image.open("searchBG.jpg")
+
+				# searchBGImage = Label(searchWindow)
+				# searchBGImage.img = ImageTk.PhotoImage(pic)
+				# searchBGImage.config(image = searchBGImage.img)
+				# searchBGImage.grid(row=0, column=0, rowspan=60, columnspan=13)
+				
+				# displayThis = 'You have searched for "' + searchThis + '"'
+				# displayLabel = Label(searchWindow, text=displayThis, padx=10, pady=10)
+				# displayLabel.place(relx=0.36, rely=0.05)
+				
+				dataEntry(searchWindow,2)
+				 			
+			global searchEntry, ck8var, ck9var, ck10var, ck11var, radioVar
+			searchEntry = Entry(dashWindow, bg="#f0f0f0", justify=CENTER)
+			searchEntry.bind('<Return>', searchData)
+			searchEntry.place(relx=0.31, rely=0.78, width=222, height=50)
+			searchButton = Button(dashWindow, text="Search Data", command=lambda: searchData(1))
+			searchButton.place(relx=0.50, rely=0.78, width=200, height=50)
+			userMgmt = Button(dashWindow, text="User Management", command=lambda: userManagement())
+			#command=lambda: os.startfile(r'\\NANCSERV\home\FreeAddressBook\AddressBook.exe'
+			userMgmt.place(relx=0.50, rely=0.70, width=200, height=50)
+			
+			searchImg = Image.open("SearchImg.png")
+			searchImage = Label(dashWindow)
+			searchImage.img = ImageTk.PhotoImage(searchImg)
+			searchImage.config(width = 40, height = 40, image = searchImage.img)
+			searchImage.place(relx=0.315, rely=0.785)
+			
+			radioVar = StringVar()
+			ck8var = StringVar()
+			ck8 = Radiobutton(dashWindow, text="Recorded", bg="#cfd8dc", variable=radioVar, value="Recorded")
+			ck8.place(relx=0.31, rely=0.85)
+			ck8.select()
+			ck9var = StringVar()
+			ck9 = Radiobutton(dashWindow, text="Checked", bg="#cfd8dc", variable=radioVar, value="Checked")
+			ck9.place(relx=0.38, rely=0.85)
+			ck9.deselect()
+			ck10var = StringVar()
+			ck10 = Radiobutton(dashWindow, text="Pending", bg="#cfd8dc", variable=radioVar, value="Pending")
+			ck10.place(relx=0.44, rely=0.85)
+			ck10.deselect()
+			ck11var = StringVar()
+			ck11 = Radiobutton(dashWindow, text="Completed", bg="#cfd8dc", variable=radioVar, value="Completed")
+			ck11.place(relx=0.50, rely=0.85)
+			ck11.deselect()
+			
+			welcomeText = "User: " + loginUser
+			welcomeLabel = Label(dashWindow, text=welcomeText, bg="#cfd8dc")
+			welcomeLabel.place(relx=0.01, rely=0.93)
+			def callFunction():
+				dashWindow.destroy()
+				initiation()
+			logOut = Button(dashWindow, text="Log Out", command=callFunction)
+			logOut.place(relx=0.95, rely=0.93)
+			
+	else:
+		showerror("Login Error","Wrong User Name or Password")
+
+def initiation():
+	#Login frame creation
+	window = Frame(mainWindow)
+	window.place(anchor=NW, width=1200, height=800)
+
+	#Home image
+	homeImg = Image.open("register_bg.jpg")
+	homeImage = Label(window)
+	homeImage.img = ImageTk.PhotoImage(homeImg)
+	homeImage.config(width = 1200, height = 800, image = homeImage.img)
+	homeImage.place(anchor=NW)
+
+	#Login
+	userName = Label(window, text="User Name", bg="#1E1F24", fg="#fff")
+	userName.place(relx=0.38, rely=0.65)
+	uName = Entry(window, bg="#1E1F24", fg="#fff")
+	uName.place(relx=0.44, rely=0.65)
+		
+	
+		
+	def btnFunction(openOption):
+		global loginUser, loginPass
+		if openOption == 2:
+			loginUser = "nanc"
+			loginPass = "register"
+		else:
+			loginUser = uName.get()
+			loginPass = pWord.get()
+		openDashboard(window, loginUser, loginPass)
+		
+	passWord = Label(window, text="Password", bg="#1E1F24", fg="#fff")
+	passWord.place(relx=0.38, rely=0.69)
+	pWord = Entry(window, show="*", bg="#1E1F24", fg="#fff")
+	pWord.bind('<Return>', btnFunction)
+	pWord.place(relx=0.44, rely=0.69)
+	
+	#Dashboard Button
+	dashboard = Button(window, text="Login", command=lambda: btnFunction(1), relief=RAISED, bg="#1E1F24", fg="#fff", activebackground="#ccc", activeforeground="#000")
+	dashboard.place(relx=0.44, rely=0.73)
+	
+	#Dashboard Shortcut Button
+	quickDashboard = Button(window, text="QLogin", command=lambda: btnFunction(2), relief=FLAT, bg="#fff", fg="#fff", activebackground="#ccc", activeforeground="#000")
+	quickDashboard.place(relx=0.95, rely=0.93)
+
+#Main window creation
+mainWindow = Tk()
+mainWindow.title("Register [NANC]")
+mainWindow.geometry("1200x800")
+mainWindow.wm_iconbitmap('logo.ico')
+
+#Menubar creation
+menubar = Menu(mainWindow)
+filemenu = Menu(menubar, tearoff = 0)
+filemenu.add_command(label = "Option One")
+filemenu.add_command(label = "Option Two")
+filemenu.add_separator()
+filemenu.add_command(label = "Exit", command = mainWindow.destroy)
+menubar.add_cascade(label = "File", menu = filemenu)
+
+mainWindow.config(menu = menubar)
+initiation()
+
+mainWindow.mainloop()
